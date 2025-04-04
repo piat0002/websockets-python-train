@@ -5,36 +5,58 @@ import asyncio
 from websockets.asyncio.server import serve
 
 
-from websockets.exceptions import ConnectionClosedOK
-
 import json
 
-from connect4 import PLAYER1, PLAYER2
+from connect4 import PLAYER1, PLAYER2, Connect4
 
 async def handler(websocket):
-    for player, column, row in [
-        (PLAYER1, 3, 0),
-        (PLAYER2, 3, 1),
-        (PLAYER1, 4, 0),
-        (PLAYER2, 4, 1),
-        (PLAYER1, 2, 0),
-        (PLAYER2, 1, 0),
-        (PLAYER1, 5, 0),
-    ]:
-        event = {
-            "type": "play",
-            "player": player,
-            "column": column,
-            "row": row,
-        }
-        await websocket.send(json.dumps(event))
-        await asyncio.sleep(0.5)
-    event = {
-        "type": "win",
-        "player": PLAYER1,
-    }
-    await websocket.send(json.dumps(event))
+    # Initialize Connect game.
+    game = Connect4()
 
+    # player on the same browser
+    PLAYERS = [PLAYER1, PLAYER2]
+    currentPLAYERIndex = 0
+    currentPLAYER = PLAYERS[currentPLAYERIndex]
+
+    async for message in websocket:
+        # parse the message claimed
+        event = json.loads(message)
+
+        assert event["type"] == "play", print("error unknow event received")
+        column = event["column"]
+
+        # Try to play and manage error if there is error
+        try:
+            row = game.play(currentPLAYER, column)
+        except ValueError as exc:
+            # Send an "error" event if the move was illegal.
+            event = {
+                "type": "error",
+                "message": str(exc),
+            }
+            await websocket.send(json.dumps(event))
+            continue
+        
+
+        # send message win if the player has win else send the legal move 
+        if game.winner is not None:
+            event = {
+                "type": "win",
+                "player": currentPLAYER,
+            }
+            await websocket.send(json.dumps(event))
+        else:
+            event = {
+                "type": "play",
+                "player": currentPLAYER,
+                "column": column,
+                "row": row,
+            }
+            await websocket.send(json.dumps(event))
+
+            # change turn
+            currentPLAYERIndex = (currentPLAYERIndex + 1) % 2
+            currentPLAYER = PLAYERS[currentPLAYERIndex]
 
 async def main():
     async with serve(handler, "", 8001) as server:

@@ -1,13 +1,4 @@
 import { createBoard, playMove } from "./connect4.js";
-window.addEventListener("DOMContentLoaded", () => {
-    // Initialize the UI.
-    const board = document.querySelector(".board");
-    createBoard(board);
-    // Open the WebSocket connection and register event handlers.
-    const websocket = new WebSocket("ws://localhost:8001/");
-    receiveMoves(board, websocket);
-    sendMoves(board, websocket);
-  });
 
 
 
@@ -25,15 +16,6 @@ function sendMoves(board, websocket) {
       };
       websocket.send(JSON.stringify(event));
     });
-  }
-
-websocket.addEventListener("message", ({ data }) => {
-    const event = JSON.parse(data);
-    // do something with event
-  });
-
-  function showMessage(message) {
-    window.setTimeout(() => window.alert(message), 50);
   }
   
 function receiveMoves(board, websocket) {
@@ -57,3 +39,22 @@ function receiveMoves(board, websocket) {
       }
     });
   }
+
+window.addEventListener("DOMContentLoaded", () => {
+    // Initialize the UI.
+    const board = document.querySelector(".board");
+    createBoard(board);
+    // Open the WebSocket connection and register event handlers.
+    const websocket = new WebSocket("ws://localhost:8001/");
+    receiveMoves(board, websocket);
+    sendMoves(board, websocket);
+});
+
+websocket.addEventListener("message", ({ data }) => {
+    const event = JSON.parse(data);
+    // do something with event
+  });
+
+  function showMessage(message) {
+    window.setTimeout(() => window.alert(message), 50);
+}
