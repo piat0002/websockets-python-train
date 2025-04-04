@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import secrets
 import asyncio
 
 from websockets.asyncio.server import serve
@@ -9,54 +9,48 @@ import json
 
 from connect4 import PLAYER1, PLAYER2, Connect4
 
-async def handler(websocket):
-    # Initialize Connect game.
+import secrets
+
+
+JOIN = {}
+
+
+async def start(websocket):
+    # Initialize a Connect Four game, the set of WebSocket connections
+    # receiving moves from this game, and secret access token.
     game = Connect4()
+    connected = {websocket}
 
-    # player on the same browser
-    PLAYERS = [PLAYER1, PLAYER2]
-    currentPLAYERIndex = 0
-    currentPLAYER = PLAYERS[currentPLAYERIndex]
+    join_key = secrets.token_urlsafe(12)
+    JOIN[join_key] = game, connected
 
-    async for message in websocket:
-        # parse the message claimed
-        event = json.loads(message)
+    try:
+        # Send the secret access token to the browser of the first player,
+        # where it'll be used for building a "join" link.
+        event = {
+            "type": "init",
+            "join": join_key,
+        }
+        await websocket.send(json.dumps(event))
 
-        assert event["type"] == "play", print("error unknow event received")
-        column = event["column"]
+        # Temporary - for testing.
+        print("first player started game", id(game))
+        async for message in websocket:
+            print("first player sent", message)
 
-        # Try to play and manage error if there is error
-        try:
-            row = game.play(currentPLAYER, column)
-        except ValueError as exc:
-            # Send an "error" event if the move was illegal.
-            event = {
-                "type": "error",
-                "message": str(exc),
-            }
-            await websocket.send(json.dumps(event))
-            continue
-        
+    finally:
+        del JOIN[join_key]
 
-        # send message win if the player has win else send the legal move 
-        if game.winner is not None:
-            event = {
-                "type": "win",
-                "player": currentPLAYER,
-            }
-            await websocket.send(json.dumps(event))
-        else:
-            event = {
-                "type": "play",
-                "player": currentPLAYER,
-                "column": column,
-                "row": row,
-            }
-            await websocket.send(json.dumps(event))
 
-            # change turn
-            currentPLAYERIndex = (currentPLAYERIndex + 1) % 2
-            currentPLAYER = PLAYERS[currentPLAYERIndex]
+async def handler(websocket):
+    # Receive and parse the "init" event from the UI.
+    message = await websocket.recv()
+    event = json.loads(message)
+    assert event["type"] == "init"
+
+    # First player starts a new game.
+    await start(websocket)
+
 
 async def main():
     async with serve(handler, "", 8001) as server:
