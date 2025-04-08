@@ -2,7 +2,7 @@ import { createBoard, playMove } from "./connect4.js";
 
 
 function getWebSocketServer() {
-  if (window.location.host === "https://piat0002.github.io/websockets-python-train") {
+  if (window.location.host === "piat0002.github.io") {
     return "wss://cooperative-domeniga-yona-b4f4c1ce.koyeb.app/";
   } else if (window.location.host === "localhost:8000") {
     return "ws://localhost:8001/";
