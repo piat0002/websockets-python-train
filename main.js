@@ -11,6 +11,13 @@ function getWebSocketServer() {
   }
 }
 
+function NewButton() {
+  if (window.location.host === "piat0002.github.io") {
+    document.querySelector(".new").href="/websockets-python-train/"; 
+  }
+}
+
+
 function initGame(websocket) {
   websocket.addEventListener("open", () => {
     // Send an "init" event according to who is connecting.
@@ -92,3 +99,6 @@ window.addEventListener("DOMContentLoaded", () => {
   receiveMoves(board, websocket);
   sendMoves(board, websocket);
 });
+
+
+NewButton();
